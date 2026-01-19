@@ -84,6 +84,7 @@ async function proxyM3u8(url: string): Promise<{ content: string, status: number
       method: 'GET',
       headers: {
         'Referer': 'https://live.kankanews.com/',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',
       },
       // 🔥 关键：不验证 SSL 证书（PHP curl 默认行为）
       rejectUnauthorized: false,
@@ -136,7 +137,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const proxyUrl = params.get('url');
   if (proxyUrl) {
     const resp = await fetch(proxyUrl, {
-      headers: { 'Referer': 'https://live.kankanews.com/' }
+      headers: { 'Referer': 'https://live.kankanews.com/', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36' }
     });
     let m3u8_content = await resp.text();
     if (!/^https?:\/\//m.test(m3u8_content)) {
@@ -170,7 +171,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     'version': '7.1.14',
     'timestamp': t,
     'sign': sign,
-    'Referer': 'https://live.kankanews.com/'
+    'Referer': 'https://live.kankanews.com/',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36'
   };
   const apiUrl = `https://kapi.kankanews.com/content/pc/tv/channel/detail?channel_id=${channelId}`;
   const resp1 = await fetch(apiUrl, { headers });
