@@ -69,7 +69,10 @@ async function getToken(): Promise<string | null> {
     if (!response.ok) return null;
 
     const data = await response.json();
-    if (!data?.success || !data?.data?.token) return null;
+    if (!data?.success || !data?.data?.token) {
+      console.log("[4k]get token fail:", response.text());
+      return null;
+    }
 
     const token = data.data.token;
     // 缓存24小时
@@ -115,7 +118,10 @@ async function getColumnData(token: string): Promise<any> {
     if (!response.ok) return null;
 
     const data = await response.json();
-    if (!data?.success) return null;
+    if (!data?.success) {
+      console.log("[4k]get url fail:", response.text());
+      return null;
+    }
 
     // 缓存10分钟
     cache.set('column_all_list_33', {
