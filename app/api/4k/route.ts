@@ -247,6 +247,103 @@ async function getPlayUrl(id: string): Promise<string | null> {
   return findPlayUrl(dataArr, targetId);
 }
 
+
+/**
+ * 获取并代理 m3u8 内容
+ */
+async function getM3u8Content(m3u8Url: string, baseUrl: string, channelId: string): Promise<string | null> {
+  try {
+    const response = await fetch(m3u8Url, {
+      headers: {
+        'Referer': 'https://api.chinaaudiovisual.cn/',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      },
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    let content = await response.text();
+    
+    // 获取 m3u8 的 base URL (用于处理相对路径)
+    const m3u8BaseUrl = m3u8Url.substring(0, m3u8Url.lastIndexOf('/') + 1);
+    const urlObj = new URL(m3u8Url);
+    const protocol = urlObj.protocol.replace(':', '');
+    const host = urlObj.host;
+
+    // 替换 ts 文件路径为代理路径
+    // 匹配完整的 ts 行，包括可能的查询参数
+    content = content.replace(/^(.*?\.ts[^\s]*)$/gim, (match) => {
+      let tsUrl = match.trim();
+      
+      if (tsUrl.startsWith('http://') || tsUrl.startsWith('https://')) {
+        // 已经是完整 URL
+        // 不做处理
+      } else if (tsUrl.startsWith('/')) {
+        // 绝对路径，拼接协议和域名
+        tsUrl = `${urlObj.protocol}//${urlObj.host}${tsUrl}`;
+      } else {
+        // 相对路径，拼接 baseUrl
+        tsUrl = m3u8BaseUrl + tsUrl;
+      }
+      
+      // 编码 ts URL
+      const encodedTs = encodeURIComponent(tsUrl);
+      return `${baseUrl}?id=${channelId}&ts=${encodedTs}`;
+    });
+
+    return content;
+  } catch (error) {
+    console.error('Failed to get m3u8 content:', error);
+    return null;
+  }
+}
+
+/**
+ * 代理 TS 切片
+ */
+async function proxyTsSegment(tsUrl: string): Promise<Response> {
+  try {
+    const response = await fetch(tsUrl, {
+      headers: {
+        'Referer': 'https://api.chinaaudiovisual.cn/',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      },
+    });
+
+    if (!response.ok) {
+      return new NextResponse('TS segment not found', { status: 404 });
+    }
+
+    const headers = new Headers({
+      'Content-Type': 'video/MP2T',
+      'Access-Control-Allow-Origin': '*',
+      'Cache-Control': 'public, max-age=3600',
+    });
+
+    return new NextResponse(response.body, {
+      status: 200,
+      headers,
+    });
+  } catch (error) {
+    console.error('Failed to proxy TS segment:', error);
+    return new NextResponse('Failed to fetch TS segment', { status: 500 });
+  }
+}
+
+/**
+ * 生成播放列表
+ */
+function generatePlaylist(baseUrl: string): string {
+  let m3u = '#EXTM3U\n';
+  for (const [id, channel] of Object.entries(CHANNELS)) {
+    m3u += `#EXTINF:-1,${channel.name}\n`;
+    m3u += `${baseUrl}/api/4k?id=${id}\n`;
+  }
+  return m3u;
+}
+
 /**
  * GET请求处理
  */
@@ -287,6 +384,21 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  // 302重定向到播放地址
-  return NextResponse.redirect(playUrl, 302);
+  // 获取并代理 m3u8 内容
+  const m3u8Content = await getM3u8Content(playUrl, baseUrl, id);
+  if (!m3u8Content) {
+    return new NextResponse('无法获取m3u8内容', {
+      status: 500,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    });
+  }
+
+  // 返回代理后的 m3u8
+  return new NextResponse(m3u8Content, {
+    headers: {
+      'Content-Type': 'application/vnd.apple.mpegurl',
+      'Access-Control-Allow-Origin': '*',
+      'Cache-Control': 'no-cache',
+    },
+  });
 }
