@@ -130,8 +130,9 @@ export async function GET(request: NextRequest) {
       liveUrl = await decryptUrl(liveUrl, dk, xReqTs);
     }
 
-    // 替换为http协议并去掉-hls
-    liveUrl = liveUrl.replace('https:', 'http:').replace('-hls.', '.');
+    //// 替换为http协议并去掉-hls
+    //liveUrl = liveUrl.replace('https:', 'http:').replace('-hls.', '.');
+    liveUrl = liveUrl.replace('https:', 'http:');
 
     // 302跳转到实际的m3u8地址
     return NextResponse.redirect(liveUrl, 302);
