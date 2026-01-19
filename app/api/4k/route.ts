@@ -333,32 +333,20 @@ async function proxyTsSegment(tsUrl: string): Promise<Response> {
 }
 
 /**
- * 生成播放列表
- */
-function generatePlaylist(baseUrl: string): string {
-  let m3u = '#EXTM3U\n';
-  for (const [id, channel] of Object.entries(CHANNELS)) {
-    m3u += `#EXTINF:-1,${channel.name}\n`;
-    m3u += `${baseUrl}/api/4k?id=${id}\n`;
-  }
-  return m3u;
-}
-
-/**
  * GET请求处理
  */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id') || 'btv4k';
+  
+  // 获取真实域名
+  const host = getRealHost(request);
+  const protocol = request.url.startsWith('https') ? 'https' : 'http';
+  const baseUrl = `${protocol}://${host}/api/4k`;
 
   // 如果是list请求，返回频道列表
   if (id === 'list') {
     let m3u8Content = '#EXTM3U\n';
-    
-    // 获取真实域名
-    const host = getRealHost(request);
-    const protocol = request.url.startsWith('https') ? 'https' : 'http';
-    const baseUrl = `${protocol}://${host}/api/4k`;
 
     for (const [cid, _] of Object.entries(CHANNEL_MAP)) {
       const channelName = CHANNEL_NAMES[cid];
