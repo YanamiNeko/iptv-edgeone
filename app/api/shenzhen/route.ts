@@ -31,8 +31,8 @@ const CHANNEL_NAMES: { [key: string]: string } = {
   'szyh': '宜和购物', 'szgj': '国际频道',
 };
 
-const KEY = 'bf9b2cab35a9c38857b82aabf99874aa96b9ffbb';
-const HOSTS = 'https://sztv-hls.sztv.com.cn';
+const KEY = 'ejow6p6p6hmrm9g96beh2knecdq5kyv9bp0zxyg7';
+const HOSTS = 'https://sztv-live.sztv.com.cn';
 
 /**
  * 获取pathname
